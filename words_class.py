@@ -6,18 +6,21 @@ from collections import Counter
 dg = pd.read_csv('genele-info-dataframe.csv')
 WORDS = list(dg['symbol'])
 
+
+def normalize_word(w):
+    return w.upper().ljust(5)
+
 class Words():
     def __init__(self,word_list=WORDS,sort_by='freq_pos'):
         self.sort_by = sort_by
-        self.words = [w.upper().ljust(5) for w in word_list]
+        self.words = list(map(normalize_word,word_list))
         self.num_words = len(word_list)
         self.freq_by_char = char_frequency(self.words)
         self.freq_by_symb = symbol_frequency(self.words)
         self.freq_by_pos = position_frequency(self.words)
 
         dw = pd.DataFrame()
-        dw['word0'] = word_list
-        dw['word'] = dw['word0'].apply(lambda w: w.ljust(5))
+        dw['word'] = self.words
         dw['num_distinct'] = dw['word'].apply(lambda w:len(set(w)))
         dw = dw[~dw['word'].str.contains('-')].copy()
         for i in range(0,5):
@@ -31,7 +34,7 @@ class Words():
         self.table = dw.copy()
 
     def update(self, guess, feedback):
-        guess = guess.upper().ljust(5)
+        guess = normalize_word(guess)
         dw = self.table.copy()
         good_chars = []
         bad_chars = set()
@@ -49,11 +52,10 @@ class Words():
             else:
                 bad_chars.add(x)
                 
+        for x in bad_chars - set(good_chars):
+            dw = dw[~dw['word'].str.contains(x.upper())]
         for x in bad_chars & set(good_chars):
-            bad_chars = bad_chars - {x}
-            dw = dw[dw['word'].str.count(x)<= good_chars.count(x)]
-        dw = dw[~dw['word'].str.contains('|'.join(bad_chars).upper())]
-        #dw = dw[dw['word'].apply(lambda s: all([x in s for x in good_chars]))==True]
+            dw = dw[dw['word'].str.count(x) <= counter[x]]
         
         self.freq_by_character = char_frequency(self.words)
         self.freq_by_symb = symbol_frequency(self.words)
